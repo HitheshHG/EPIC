@@ -10,32 +10,34 @@ export default function Dashboard() {
   const [displayName, setDisplayName] = useState(null)
 
   useEffect(() => {
-    async function checkUser() {
-      if (window.location.hash) {
-        window.history.replaceState(null, '', window.location.pathname)
-      }
-
-      const { data, error } = await supabase.auth.getSession()
-      const user = data?.session?.user ?? null
-      const isGuest = localStorage.getItem("guest") === "1"
-
-      if (user) {
-        localStorage.removeItem("guest")
-        const name = user.user_metadata?.full_name || user.email || await getDisplayName()
-        setDisplayName(name || "User")
-        return
-      }
-
-      if (isGuest) {
-        setDisplayName("Guest")
-        return
-      }
-
-      window.location.assign("/")
+  async function checkUser() {
+    if (window.location.hash) {
+      const cleanPath = window.location.pathname
+      window.history.replaceState(null, '', cleanPath)
     }
 
-    checkUser()
-  }, [])
+    const { data, error } = await supabase.auth.getSession()
+    const user = data?.session?.user ?? null
+    const isGuest = localStorage.getItem("guest") === "1"
+
+    if (user) {
+      localStorage.removeItem("guest")
+      const name = user.user_metadata?.full_name || user.email || await getDisplayName()
+      setDisplayName(name || "User")
+      return
+    }
+
+    if (isGuest) {
+      setDisplayName("Guest")
+      return
+    }
+
+    window.location.assign("/")
+  }
+
+  checkUser()
+}, [])
+
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
