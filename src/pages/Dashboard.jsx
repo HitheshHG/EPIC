@@ -11,7 +11,11 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function checkUser() {
-      const { data } = await supabase.auth.getSession()
+      if (window.location.hash === '#') {
+        window.history.replaceState(null, '', '/dashboard')
+      }
+
+      const { data, error } = await supabase.auth.getSession()
       const user = data?.session?.user ?? null
       const isGuest = localStorage.getItem("guest") === "1"
 
@@ -19,17 +23,17 @@ export default function Dashboard() {
         localStorage.removeItem("guest")
         const name = user.user_metadata?.full_name || user.email || await getDisplayName()
         setDisplayName(name || "User")
-        if (window.location.hash === '#') {
-          window.history.replaceState(null, '', '/dashboard')
-        }
         return
       }
+
       if (isGuest) {
         setDisplayName("Guest")
         return
       }
+
       window.location.assign("/")
     }
+
     checkUser()
   }, [])
 
