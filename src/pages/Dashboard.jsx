@@ -11,8 +11,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function checkUser() {
-      if (window.location.hash === '#') {
-        window.history.replaceState(null, '', '/dashboard')
+      if (window.location.hash) {
+        window.history.replaceState(null, '', window.location.pathname)
       }
 
       const { data, error } = await supabase.auth.getSession()
