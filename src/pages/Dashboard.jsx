@@ -10,35 +10,27 @@ export default function Dashboard() {
   const [displayName, setDisplayName] = useState(null)
 
   useEffect(() => {
-  async function checkUser() {
-    const { data } = await supabase.auth.getSession()
-    const user = data?.session?.user ?? null
-    const isGuest = localStorage.getItem("guest") === "1"
+    async function checkUser() {
+      const { data } = await supabase.auth.getSession()
+      const user = data?.session?.user ?? null
+      const isGuest = localStorage.getItem("guest") === "1"
 
-    if (user) {
-      localStorage.removeItem("guest")
-      const name = await getDisplayName()
-      setDisplayName(name || "User")
-      return
+      if (user) {
+        localStorage.removeItem("guest")
+        const name = user.user_metadata?.full_name || user.email || await getDisplayName()
+        setDisplayName(name || "User")
+        if (window.location.hash === '#') {
+          window.history.replaceState(null, '', '/dashboard')
+        }
+        return
+      }
+      if (isGuest) {
+        setDisplayName("Guest")
+        return
+      }
+      window.location.assign("/")
     }
-
-    if (isGuest) {
-      setDisplayName("Guest")
-      return
-    }
-    window.location.assign("/")
-  }
-
-  checkUser()
-}, [])
-
-
-  useEffect(() => {
-    async function load() {
-      const name = await getDisplayName()
-      if (name) setDisplayName(name)
-    }
-    load()
+    checkUser()
   }, [])
 
   return (
