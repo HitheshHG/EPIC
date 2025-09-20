@@ -3,11 +3,9 @@ import { supabase } from './supabaseClient'
 export async function signInWithGoogle() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: {
-      redirectTo: `${window.location.origin}/dashboard`
-    }
+    options: { redirectTo: `${window.location.origin}/dashboard` }
   })
-  if (error) console.error(error.message)
+  if (error) throw error
 }
 
 export async function signOut() {
