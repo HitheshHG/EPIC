@@ -18,7 +18,7 @@ export default function Dashboard() {
       try {
         // Check if user data was passed from AuthCallback
         const userFromState = location.state?.user
-        
+
         if (userFromState) {
           const name = userFromState.user_metadata?.full_name || userFromState.email || "User"
           setDisplayName(name)
@@ -58,11 +58,11 @@ export default function Dashboard() {
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state change:', event, session)
-      
+
       if (event === 'SIGNED_IN' && session) {
-        const name = session.user.user_metadata?.full_name || 
-                    session.user.email || 
-                    "User"
+        const name = session.user.user_metadata?.full_name ||
+          session.user.email ||
+          "User"
         setDisplayName(name)
         setLoading(false)
       } else if (event === 'SIGNED_OUT') {

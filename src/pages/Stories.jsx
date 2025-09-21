@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useState, useId } from "react"
 import gita from "../data/gita.json"
 
-function stripCommentary(s = "") {
-  return s.replace(/\s*Commentary[\s\S]*$/i, "").trim()
-}
-
 function decodeLines(s = "") {
   return s.replace(/\r\n/g, "\n")
 }
@@ -19,16 +15,17 @@ function buildRows(data) {
   for (const ch of chapters) {
     const list = Array.isArray(ch?.verses) ? ch.verses : []
     for (const v of list) {
-      const translationRaw = v.translation || ""
-      const translation = decodeLines(stripCommentary(translationRaw))
       rows.push({
         chapter: ch.number,
         number: v.number,
         chapterTitleEn: ch.title_english || "",
         chapterTitleSa: ch.title_sanskrit || "",
-        translation,
+        translation: decodeLines(v.translation || ""),
         transliteration: decodeLines(v.transliteration || ""),
         sanskrit: decodeLines(v.sanskrit || ""),
+        meaningEn: decodeLines(v.meaningEn || ""),
+        translationHi: decodeLines(v.translationHi || ""),
+        meaningHi: decodeLines(v.meaningHi || ""),
       })
     }
   }
@@ -56,7 +53,14 @@ function VerseIcon({ className = "" }) {
 }
 
 function VerseCard({ item, onOpen }) {
-  const preview = item.translation || item.transliteration || item.sanskrit || "No content"
+  const preview =
+    item.translation ||
+    item.meaningEn ||
+    item.translationHi ||
+    item.meaningHi ||
+    item.transliteration ||
+    item.sanskrit ||
+    "No content"
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5">
       <div className="p-5">
@@ -78,7 +82,6 @@ function VerseCard({ item, onOpen }) {
             Read
           </button>
         </div>
-
         <div className="mt-4 text-sm text-white/80 whitespace-pre-wrap max-h-28 overflow-hidden">
           {preview}
         </div>
@@ -130,9 +133,18 @@ function Modal({ open, onClose, item }) {
             <div className="mt-6 space-y-6 text-sm leading-7">
               {item.translation ? (
                 <section>
-                  <h3 className="text-white/80 font-medium">Translation</h3>
+                  <h3 className="text-white/80 font-medium">Translation (English)</h3>
                   <div className="mt-2 rounded-lg bg-white/5 p-4 border border-white/10">
                     <p className="text-white/90 whitespace-pre-wrap">{item.translation}</p>
+                  </div>
+                </section>
+              ) : null}
+
+              {item.meaningEn ? (
+                <section className="pt-4 border-t border-white/10">
+                  <h3 className="text-white/80 font-medium">Meaning (English)</h3>
+                  <div className="mt-2 rounded-lg bg-white/5 p-4 border border-white/10">
+                    <p className="text-white/80 whitespace-pre-wrap">{item.meaningEn}</p>
                   </div>
                 </section>
               ) : null}
@@ -151,6 +163,24 @@ function Modal({ open, onClose, item }) {
                   <h3 className="text-white/80 font-medium">Shloka (Devanagari)</h3>
                   <div className="mt-2 rounded-lg bg-white/5 p-4 border border-white/10">
                     <p className="whitespace-pre-wrap leading-8 font-serif">{item.sanskrit}</p>
+                  </div>
+                </section>
+              ) : null}
+
+              {item.translationHi ? (
+                <section className="pt-4 border-t border-white/10">
+                  <h3 className="text-white/80 font-medium">अनुवाद (Hindi)</h3>
+                  <div className="mt-2 rounded-lg bg-white/5 p-4 border border-white/10">
+                    <p className="text-white/80 whitespace-pre-wrap">{item.translationHi}</p>
+                  </div>
+                </section>
+              ) : null}
+
+              {item.meaningHi ? (
+                <section className="pt-4 border-t border-white/10">
+                  <h3 className="text-white/80 font-medium">भावार्थ (Hindi)</h3>
+                  <div className="mt-2 rounded-lg bg-white/5 p-4 border border-white/10">
+                    <p className="text-white/80 whitespace-pre-wrap">{item.meaningHi}</p>
                   </div>
                 </section>
               ) : null}
@@ -213,7 +243,7 @@ export default function GitaExplorer({ embedded = false }) {
 
   useEffect(() => { setPage(1) }, [q, chapter, perPage])
 
-  const allVerses = useMemo(() => buildRows(gita), [gita])
+  const allVerses = useMemo(() => buildRows(gita), [])
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -221,7 +251,14 @@ export default function GitaExplorer({ embedded = false }) {
     return allVerses.filter(v => {
       if (chapter !== "all" && String(v.chapter) !== String(chapter)) return false
       if (!needle) return true
-      const hay = `${v.translation} ${v.transliteration} ${v.sanskrit}`.toLowerCase()
+      const hay = [
+        v.translation,
+        v.meaningEn,
+        v.translationHi,
+        v.meaningHi,
+        v.transliteration,
+        v.sanskrit,
+      ].join(" ").toLowerCase()
       const hayPlain = stripDiacritics(hay)
       return hay.includes(needle) || hayPlain.includes(needlePlain)
     })
@@ -253,7 +290,7 @@ export default function GitaExplorer({ embedded = false }) {
             <input
               value={q}
               onChange={e => setQ(e.target.value)}
-              placeholder="Search translation / transliteration / Sanskrit"
+              placeholder="Search EN/HI translation, meaning, transliteration, or Sanskrit"
               className="w-full md:flex-1 px-3 py-2 rounded-md bg-black/40 border border-white/15 text-sm outline-none"
             />
             <div className="flex items-center gap-3">
