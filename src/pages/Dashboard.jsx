@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import Header from "../components/Header"
 import Footer from "../components/Footer"
 import { supabase } from "../lib/supabaseClient"
@@ -11,10 +11,22 @@ export default function Dashboard() {
   const [displayName, setDisplayName] = useState(null)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
     async function checkUser() {
       try {
+        // Check if user data was passed from AuthCallback
+        const userFromState = location.state?.user
+        
+        if (userFromState) {
+          const name = userFromState.user_metadata?.full_name || userFromState.email || "User"
+          setDisplayName(name)
+          setLoading(false)
+          return
+        }
+
+        // Otherwise check session normally
         const { data, error } = await supabase.auth.getSession()
         const user = data?.session?.user ?? null
         const isGuest = localStorage.getItem("guest") === "1"
@@ -33,6 +45,7 @@ export default function Dashboard() {
           return
         }
 
+        // Redirect to landing page if no valid session
         navigate('/', { replace: true })
       } catch (error) {
         console.error('Error checking user session:', error)
@@ -42,7 +55,10 @@ export default function Dashboard() {
 
     checkUser()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, session)
+      
       if (event === 'SIGNED_IN' && session) {
         const name = session.user.user_metadata?.full_name || 
                     session.user.email || 
@@ -50,6 +66,7 @@ export default function Dashboard() {
         setDisplayName(name)
         setLoading(false)
       } else if (event === 'SIGNED_OUT') {
+        localStorage.removeItem("guest")
         navigate('/', { replace: true })
       }
     })
@@ -57,7 +74,7 @@ export default function Dashboard() {
     return () => {
       subscription.unsubscribe()
     }
-  }, [navigate])
+  }, [navigate, location.state])
 
   if (loading) {
     return (

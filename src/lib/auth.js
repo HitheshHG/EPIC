@@ -1,12 +1,15 @@
 import { supabase } from './supabaseClient'
 
 export async function signInWithGoogle() {
-  const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  
+  const isProduction = window.location.hostname !== 'localhost'
+  const redirectUrl = isProduction
+    ? 'https://epic-hg.vercel.app/auth/callback'
+    : 'http://localhost:5173/auth/callback'
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${origin}/auth/callback`,
+      redirectTo: redirectUrl,
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
