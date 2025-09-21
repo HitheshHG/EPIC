@@ -11,8 +11,26 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function checkUser() {
+      // Clean up hash from URL more thoroughly
       if (window.location.hash) {
-        window.history.replaceState(null, '', window.location.pathname)
+        const cleanUrl = window.location.protocol + '//' + 
+                        window.location.host + 
+                        window.location.pathname + 
+                        window.location.search
+        window.history.replaceState(null, '', cleanUrl)
+      }
+
+      // Handle OAuth callback parameters
+      const hashParams = new URLSearchParams(window.location.hash.substring(1))
+      const searchParams = new URLSearchParams(window.location.search)
+      
+      if (hashParams.get('access_token') || searchParams.get('code')) {
+        // OAuth callback detected, let Supabase handle the session
+        const { data, error } = await supabase.auth.getSession()
+        if (data?.session?.user) {
+          // Clear URL parameters after successful auth
+          window.history.replaceState(null, '', '/dashboard')
+        }
       }
 
       const { data, error } = await supabase.auth.getSession()
@@ -31,10 +49,29 @@ export default function Dashboard() {
         return
       }
 
+      // Redirect to landing page if no valid session
       window.location.assign("/")
     }
 
     checkUser()
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        const name = session.user.user_metadata?.full_name || 
+                    session.user.email || 
+                    "User"
+        setDisplayName(name)
+        // Ensure clean URL after sign in
+        if (window.location.hash || window.location.search.includes('code=')) {
+          window.history.replaceState(null, '', '/dashboard')
+        }
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
   return (

@@ -1,10 +1,17 @@
 import { supabase } from './supabaseClient'
 
 export async function signInWithGoogle() {
+  // Get the current origin dynamically for proper redirects
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/dashboard`,
+      redirectTo: `${origin}/dashboard`,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
+      },
     },
   })
   if (error) console.error(error)
