@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import Header from "../components/Header"
 import Footer from "../components/Footer"
 import { supabase } from "../lib/supabaseClient"
@@ -8,71 +9,66 @@ import Stories from "./Stories"
 
 export default function Dashboard() {
   const [displayName, setDisplayName] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
 
   useEffect(() => {
     async function checkUser() {
-      // Clean up hash from URL more thoroughly
-      if (window.location.hash) {
-        const cleanUrl = window.location.protocol + '//' + 
-                        window.location.host + 
-                        window.location.pathname + 
-                        window.location.search
-        window.history.replaceState(null, '', cleanUrl)
-      }
-
-      // Handle OAuth callback parameters
-      const hashParams = new URLSearchParams(window.location.hash.substring(1))
-      const searchParams = new URLSearchParams(window.location.search)
-      
-      if (hashParams.get('access_token') || searchParams.get('code')) {
-        // OAuth callback detected, let Supabase handle the session
+      try {
         const { data, error } = await supabase.auth.getSession()
-        if (data?.session?.user) {
-          // Clear URL parameters after successful auth
-          window.history.replaceState(null, '', '/dashboard')
+        const user = data?.session?.user ?? null
+        const isGuest = localStorage.getItem("guest") === "1"
+
+        if (user) {
+          localStorage.removeItem("guest")
+          const name = user.user_metadata?.full_name || user.email || await getDisplayName()
+          setDisplayName(name || "User")
+          setLoading(false)
+          return
         }
+
+        if (isGuest) {
+          setDisplayName("Guest")
+          setLoading(false)
+          return
+        }
+
+        navigate('/', { replace: true })
+      } catch (error) {
+        console.error('Error checking user session:', error)
+        navigate('/', { replace: true })
       }
-
-      const { data, error } = await supabase.auth.getSession()
-      const user = data?.session?.user ?? null
-      const isGuest = localStorage.getItem("guest") === "1"
-
-      if (user) {
-        localStorage.removeItem("guest")
-        const name = user.user_metadata?.full_name || user.email || await getDisplayName()
-        setDisplayName(name || "User")
-        return
-      }
-
-      if (isGuest) {
-        setDisplayName("Guest")
-        return
-      }
-
-      // Redirect to landing page if no valid session
-      window.location.assign("/")
     }
 
     checkUser()
 
-    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         const name = session.user.user_metadata?.full_name || 
                     session.user.email || 
                     "User"
         setDisplayName(name)
-        // Ensure clean URL after sign in
-        if (window.location.hash || window.location.search.includes('code=')) {
-          window.history.replaceState(null, '', '/dashboard')
-        }
+        setLoading(false)
+      } else if (event === 'SIGNED_OUT') {
+        navigate('/', { replace: true })
       }
     })
 
     return () => {
       subscription.unsubscribe()
     }
-  }, [])
+  }, [navigate])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-lg mb-4">Loading...</div>
+          <div className="animate-spin h-8 w-8 border-2 border-white border-t-transparent rounded-full mx-auto"></div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">

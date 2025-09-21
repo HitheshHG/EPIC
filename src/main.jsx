@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard.jsx"
 import Contact from "./pages/Contact.jsx"
 import Privacy from "./pages/Privacy.jsx"
 import Terms from "./pages/Terms.jsx"
+import AuthCallback from "./pages/AuthCallback.jsx"
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -19,6 +20,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="/contact" element={<Contact />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>
